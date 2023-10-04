@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.green.smartgradever2.admin.grade_mngmn.GradeMngmnMapper">
+
+    <select id="countStudent">
+        SELECT count(*)
+        from student
+    </select>
+
+    <select id="selGradeFindStudent">
+        SELECT A.grade grade, C.semester semester, F.lecture_name lectureName
+        , G.nm professorName, F.score lectureScore
+        , D.total_score totalScore, rating
+        FROM student_semester_score A
+        INNER JOIN student B
+        ON A.student_num = B.student_num
+        INNER JOIN semester C
+        ON A.isemester = C.isemester
+        INNER JOIN lecture_student D
+        ON A.student_num = D.student_num
+        INNER JOIN lecture_apply E
+        ON D.ilecture = E.ilecture
+        INNER JOIN lecture_name F
+        ON E.ilecture_name = F.ilecture_name
+        INNER JOIN professor G
+        ON G.iprofessor = E.iprofessor
+        <where>
+            D.finished_yn = 1
+            <if test="studentNum != null and studentNum != ''">
+                and B.student_num = #{studentNum}
+            </if>
+            <if test="grade > 0">
+                and A.grade = #{grade}
+            </if>
+        </where>
+        LIMIT #{staIdx}, 10
+    </select>
+
+    <select id="GradeMngmnAvg">
+        SELECT DISTINCT C.grade grade , D.semester semester
+        , C.avg_score avgScore, C.rating avgRating
+        FROM student A
+        INNER JOIN lecture_student B
+        ON A.student_num = B.student_num
+        INNER JOIN student_semester_score C
+        ON B.student_num = C.student_num
+        INNER JOIN semester D
+        ON C.isemester = D.isemester
+        <where>
+            <if test="studentNum != null and studentNum != ''">
+                and A.student_num = #{studentNum}
+            </if>
+        </where>
+    </select>
+
+    <select id="selGradeMngmnStudent">
+        SELECT nm name, student_num studentNum
+        FROM student
+        <where>
+            <if test="studentNum != null and studentNum != ''">
+                and student_num = #{studentNum}
+            </if>
+        </where>
+    </select>
+
+    <select id="selGradeFindStudentDetail">
+        SELECT A.pic pic, A.nm name, A.gender
+        , A.birthdate, A.phone , A.address address
+        , A.student_num studentNum, B.major_name majorName
+        , A.created_at createdAt, A.email,
+        C.score scoreStudent, B.graduation_score graduationScore
+        , A.grade grade, C.isemester isemester, D.ilecture ilecture
+        , C.avg_score avgScore, avg(C.rating) rating
+        FROM student A
+        INNER JOIN major B
+        ON A.imajor = B.imajor
+        INNER JOIN student_semester_score C
+        ON A.student_num = C.student_num
+        INNER JOIN lecture_student D
+        ON A.student_num = D.student_num
+        WHERE A.student_num = #{studentNum};
+    </select>
+
+    <insert id="insGradeMngmn">
+        INSERT INTO student_semester_score (student_num , isemester, grade, score, avg_score, rating)
+        SELECT
+        #{studentNum}, #{isemester}, A.grade,
+        B.score, AVG(C.total_score), #{rating}
+        FROM student A
+        INNER JOIN lecture_name B
+        ON B.ilecture_name = #{ilectureName}
+        INNER JOIN lecture_student C
+        ON A.student_num = C.student_num
+        INNER JOIN student_semester_score D
+        ON A.student_num = D.student_num
+        INNER JOIN semester E
+        ON D.isemester = E.isemester
+        WHERE A.student_num = #{studentNum}
+        AND E.semester = #{semester};
+    </insert>
+
+    <select id="selAvgScore">
+        SELECT AVG(C.total_score) avgScore
+        FROM lecture_student C
+        INNER JOIN student_semester_score D
+        ON C.student_num = D.student_num
+        INNER JOIN semester E
+        ON D.isemester = E.isemester
+        WHERE C.student_num = #{studentNum}
+        AND E.semester = #{semester}
+    </select>
+
+    <update id="updAvgScore">
+        UPDATE student_semester_score A
+        INNER JOIN semester B
+        ON A.isemester = B.isemester
+        SET A.avg_score = #{avgScore}
+        ,A.rating = #{avgRating}
+        WHERE A.student_num = #{studentNum}
+        AND B.semester = #{semester}
+    </update>
+</mapper>
